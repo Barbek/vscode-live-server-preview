@@ -33,12 +33,10 @@
     ],
     "main": "./out/src/extension",
     "contributes": {
-        "commands": [
-            {
-                "command": "extension.liveServerPreview.open",
-                "title": "Show Live Server Preview"
-            }
-        ]
+        "commands": [{
+            "command": "extension.liveServerPreview.open",
+            "title": "Show Live Server Preview"
+        }]
     },
     "scripts": {
         "vscode:prepublish": "tsc -p ./",
@@ -55,7 +53,6 @@
         "vscode": "^1.0.0"
     },
     "dependencies": {
-        "fsevents": "^1.1.3",
         "live-server": "^1.2.0",
         "path": "^0.12.7"
     }
