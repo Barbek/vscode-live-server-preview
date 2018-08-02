@@ -6,12 +6,19 @@ import * as liveServer from 'live-server';
 import * as path from 'path';
 import LiveServerContentProvider from './LiveServerContentProvider';
 
+let previewUri;
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
+    const provider = new LiveServerContentProvider();
     vscode.workspace.registerTextDocumentContentProvider('LiveServerPreview', new LiveServerContentProvider());
     let disposablePreview = vscode.commands.registerTextEditorCommand('extension.liveServerPreview.open', livePreview);
     context.subscriptions.push(disposablePreview);
+    vscode.workspace.onDidSaveTextDocument((e) => {
+        if (previewUri) {
+            provider.update(previewUri);
+        }
+    });
 }
 
 function livePreview(textEditor: vscode.TextEditor) {
@@ -21,15 +28,13 @@ function livePreview(textEditor: vscode.TextEditor) {
         return;
     }
 
-    const workspacePath = 
-        vscode.workspace.rootPath;
-    const documentPath = 
-        textEditor.document.uri.fsPath;
+    const workspacePath = vscode.workspace.rootPath;
+    const documentPath = textEditor.document.uri.fsPath;
 
     const rootPath =
         // workspace is available and it has the document
         (workspacePath && documentPath.startsWith(workspacePath))
-            ? workspacePath 
+            ? workspacePath
             : path.dirname(documentPath);
 
     liveServer.start({
@@ -39,10 +44,7 @@ function livePreview(textEditor: vscode.TextEditor) {
         open: false
     });
 
-    // some/file.html
-    const relativePath = documentPath.substr(rootPath.length + 1);
-    const previewUri =
-        vscode.Uri.parse(`LiveServerPreview://authority/${relativePath}`);
+    previewUri = vscode.Uri.parse(`LiveServerPreview://authority/${documentPath}`);
 
     vscode.commands
             .executeCommand('vscode.previewHtml', previewUri, vscode.ViewColumn.Two)
@@ -50,7 +52,7 @@ function livePreview(textEditor: vscode.TextEditor) {
 }
 
 function isEditingHTML(document: vscode.TextDocument) {
-    return document.languageId.toLowerCase() == 'html' || document.fileName.match(/\.html$/);
+    return document.languageId.toLowerCase() == 'html';
 }
 
 // this method is called when your extension is deactivated
