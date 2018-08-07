@@ -1,11 +1,11 @@
 {
     "name": "live-server-preview",
-    "displayName": "Live Server Preview",
+    "displayName": "Live Preview",
     "description": "Preview your HTML file with localhost server live-reloading enabled",
-    "version": "0.1.1",
+    "version": "0.1.2",
     "publisher": "negokaz",
     "engines": {
-        "vscode": "^1.10.0"
+        "vscode": "^1.23.0"
     },
     "categories": [
         "Other"
@@ -29,14 +29,37 @@
     "license": "MIT",
     "icon": "doc/img/icon.png",
     "activationEvents": [
-        "onCommand:extension.liveServerPreview.open"
+        "onCommand:extension.livePreview.open"
     ],
     "main": "./out/src/extension",
     "contributes": {
         "commands": [{
-            "command": "extension.liveServerPreview.open",
-            "title": "Show Live Server Preview"
-        }]
+            "command": "extension.livePreview.open",
+            "title": "Show Live Preview"
+        }],
+        "menus": {
+            "editor/context": [{
+                "command": "extension.livePreview.open",
+                "group": "z_commands",
+                "when": "resourceLangId == html"
+            }]
+        },
+        "configuration": {
+            "type": "object",
+            "title": "Live preview configuration",
+            "properties": {
+                "livepreview.styleCdns": {
+                    "type": "array",
+                    "default": [],
+                    "description": "CDN URLs which where injected as style to the iframe content of the webview"
+                },
+                "livepreview.scriptCdns": {
+                    "type": "array",
+                    "default": [],
+                    "description": "CDN URLs which where injected as script to the iframe content of the webview"
+                }
+            }
+        }
     },
     "scripts": {
         "vscode:prepublish": "tsc -p ./",
@@ -46,14 +69,13 @@
     },
     "devDependencies": {
         "@types/mocha": "^2.2.32",
-        "@types/node": "^6.0.40",
+        "@types/node": "^9.4.6",
         "mocha": "^2.3.3",
-        "typescript": "^2.0.3",
+        "typescript": "^2.8.3",
         "vsce": "^1.39.0",
-        "vscode": "^1.0.0"
+        "vscode": "^1.1.18"
     },
     "dependencies": {
-        "live-server": "^1.2.0",
-        "path": "^0.12.7"
+        "vscode": "*"
     }
 }

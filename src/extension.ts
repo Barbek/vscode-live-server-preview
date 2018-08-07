@@ -2,53 +2,32 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
-import * as liveServer from 'live-server';
-import * as path from 'path';
-import LiveServerContentProvider from './LiveServerContentProvider';
 
-let previewUri;
+let panel;
+let configuration;
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
-    const provider = new LiveServerContentProvider();
-    vscode.workspace.registerTextDocumentContentProvider('LiveServerPreview', new LiveServerContentProvider());
-    let disposablePreview = vscode.commands.registerTextEditorCommand('extension.liveServerPreview.open', livePreview);
+    let disposablePreview = vscode.commands.registerTextEditorCommand('extension.livePreview.open', livePreview);
     context.subscriptions.push(disposablePreview);
-    vscode.workspace.onDidSaveTextDocument((e) => {
-        if (previewUri) {
-            provider.update(previewUri);
-        }
+
+    vscode.workspace.onDidSaveTextDocument((document) => {
+        panel.webview.html = createWebviewContent(document.getText());
     });
+
+    configuration = vscode.workspace.getConfiguration("livepreview");
 }
 
 function livePreview(textEditor: vscode.TextEditor) {
 
     if (!isEditingHTML(textEditor.document)) {
-        vscode.window.showErrorMessage('Live Server Preview can preview only HTML file');
+        vscode.window.showErrorMessage('Live Preview can preview only HTML files');
         return;
     }
 
-    const workspacePath = vscode.workspace.rootPath;
-    const documentPath = textEditor.document.uri.fsPath;
-
-    const rootPath =
-        // workspace is available and it has the document
-        (workspacePath && documentPath.startsWith(workspacePath))
-            ? workspacePath
-            : path.dirname(documentPath);
-
-    liveServer.start({
-        port: 0, // random port
-        host: '127.0.0.1',
-        root: rootPath,
-        open: false
-    });
-
-    previewUri = vscode.Uri.parse(`LiveServerPreview://authority/${documentPath}`);
-
-    vscode.commands
-            .executeCommand('vscode.previewHtml', previewUri, vscode.ViewColumn.Two)
-            .then(s => console.log('done'), vscode.window.showErrorMessage);
+    panel = vscode.window.createWebviewPanel('livePreview', "Preview", vscode.ViewColumn.Two, { enableScripts: true });
+    const documentContent = textEditor.document.getText();
+    panel.webview.html = createWebviewContent(documentContent);
 }
 
 function isEditingHTML(document: vscode.TextDocument) {
@@ -56,6 +35,50 @@ function isEditingHTML(document: vscode.TextDocument) {
 }
 
 // this method is called when your extension is deactivated
-export function deactivate() {
-    liveServer.shutdown();
+export function deactivate() {}
+
+function createWebviewContent(content) {
+    let styleAndScriptTags = "";
+    configuration.scriptCdns.forEach(cdn => {
+        styleAndScriptTags += buildScriptTag(cdn);
+    });
+    configuration.styleCdns.forEach(cdn => {
+        styleAndScriptTags += buildStyleTag(cdn);
+    });
+    return `
+        <html>
+            <header>
+                <style>
+                    body, html, div {
+                        margin: 0;
+                        padding: 0;
+                        width: 100%;
+                        height: 100%;
+                        overflow: hidden;
+                        background-color: #fff;
+                    }
+                </style>
+            </header>
+            <body>
+                <div>
+                    <iframe id="contentFrame" width="100%" height="100%" seamless frameborder=0>
+                    </iframe>
+                </div>
+            </body>
+            <script>
+                var iframe = document.getElementById('contentFrame'),
+                iframedoc = iframe.contentDocument || iframe.contentWindow.document;
+                iframedoc.body.innerHTML = \`${ content }\`;
+                iframedoc.head.innerHTML += \`${ styleAndScriptTags }\`;
+            </script>
+        </html>
+    `;
+}
+
+function buildScriptTag(cdnUrl) {
+    return `<script src=\\"${cdnUrl}\\" crossorigin=\\"anonymous\\"><\\/script>`
+}
+
+function buildStyleTag(cdnUrl) {
+    return `<link rel=\\"stylesheet\\" href=\\"${cdnUrl}\\" crossorigin=\\"anonymous\\">`
 }
